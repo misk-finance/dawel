@@ -2,22 +2,18 @@ import React from "react";
 import {getFirestore} from 'firebase/firestore';
 import {relDiff} from "../helpers.js";
 import {DashboardSectors} from "./dashboard-sectors";
-import {Card, CardContent, CardHeader, Grid} from "@material-ui/core";
+import {Box, Card, CardContent, CardHeader, Grid} from "@material-ui/core";
 import {DashboardChart} from "./dashboard-chart";
 import Watchlist from "../WatchList/watchlist";
 import Portfolio from "../Portfolio/portfolio";
 import {PositionContext} from "../../services/position-history";
-
+import {DashboardNews} from "./dashboard-news";
+import {DashboardCard} from "./dashboard-card";
+import withWidth from '@material-ui/core/withWidth';
 
 const db = getFirestore();
 
 
-// CHARTS
-
-let chartData1 = [],
-	chartData2 = [];
-
-// PORTFOLIO
 
 let portfolioStocks = [],
 	portfolioShares = [],
@@ -25,10 +21,6 @@ let portfolioStocks = [],
 	portfolioDifference = [],
 	portfolioColor = [],
 	portfolioMoneyPaid = [];
-
-// Watchlist
-let watchlist = [];
-
 
 
 class Dashboard extends React.Component {
@@ -53,92 +45,6 @@ class Dashboard extends React.Component {
 		this.portfolio = React.createRef();
 		this.chartFirst = React.createRef();
 		this.chartSecond = React.createRef();
-
-		/*
-		 * GENERATING LABALS FOR DASHBOARD CHARTS
-		 * @param {length} num of labels
-		 */
-
-		function labelGen(length) {
-			let result = 0;
-			for (let i = 1; i < length; i++) {
-				result = result + "," + i;
-			}
-			return result.split(",");
-		}
-
-		/*
-		 * STYLES FOR DASHBOARD CHARTS
-		 */
-
-		this.data1 = (canvas) => {
-			const ctx = canvas.getContext("2d");
-			const gradient = ctx.createLinearGradient(0, 0, 600, 10);
-			gradient.addColorStop(0, "#7c83ff");
-			gradient.addColorStop(1, "#7cf4ff");
-			let gradientFill = ctx.createLinearGradient(0, 0, 0, 100);
-			gradientFill.addColorStop(0.1, "rgba(124, 131, 255,.3)");
-			if (this.state.theme === "dark") {
-				gradientFill.addColorStop(0.8, "rgba(55, 58, 70, 0)");
-			} else if (this.state.theme === "light") {
-				gradientFill.addColorStop(0.8, "rgba(255, 255, 255, 0)");
-			}
-			ctx.shadowColor = "rgba(124, 131, 255,.3)";
-			ctx.shadowBlur = 5;
-			ctx.shadowOffsetX = 0;
-			ctx.shadowOffsetY = 4;
-			return {
-				labels: labelGen(chartData1.length),
-				datasets: [
-					{
-						lineTension: 0.3,
-						label: "",
-						pointBorderWidth: 0,
-						pointHoverRadius: 0,
-						borderColor: gradient,
-						backgroundColor: gradientFill,
-						pointBackgroundColor: gradient,
-						fill: true,
-						borderWidth: 2,
-						data: chartData1,
-					},
-				],
-			};
-		};
-		this.data2 = (canvas) => {
-			const ctx = canvas.getContext("2d");
-			const gradient = ctx.createLinearGradient(0, 0, 600, 10);
-			gradient.addColorStop(0, "#7c83ff");
-			gradient.addColorStop(1, "#7cf4ff");
-			let gradientFill = ctx.createLinearGradient(0, 0, 0, 100);
-			gradientFill.addColorStop(0.1, "rgba(124, 131, 255,.3)");
-			if (this.state.theme === "dark") {
-				gradientFill.addColorStop(0.8, "rgba(55, 58, 70, 0)");
-			} else if (this.state.theme === "light") {
-				gradientFill.addColorStop(0.8, "rgba(255, 255, 255, 0)");
-			}
-			ctx.shadowColor = "rgba(124, 131, 255,.3)";
-			ctx.shadowBlur = 5;
-			ctx.shadowOffsetX = 0;
-			ctx.shadowOffsetY = 4;
-			return {
-				labels: labelGen(chartData2.length),
-				datasets: [
-					{
-						lineTension: 0.3,
-						label: "",
-						pointBorderWidth: 0,
-						pointHoverRadius: 0,
-						borderColor: gradient,
-						backgroundColor: gradientFill,
-						pointBackgroundColor: gradient,
-						fill: true,
-						borderWidth: 2,
-						data: chartData2,
-					},
-				],
-			};
-		};
 	}
 
 
@@ -193,131 +99,26 @@ class Dashboard extends React.Component {
 
 	}
 
-	/*
-	 * gets account bought stocks, calls function getLatestPrice
-	 */
+
 	getAccountInfo() {
-		/*let user = getAuth().currentUser.uid;
-		let i = 0;
 
-		portfolioStocks = [];
-		portfolioValue = [];
-		portfolioShares = [];
-		portfolioMoneyPaid = [];
-		portfolioDifference = [];
-		portfolioColor = [];
-		getFirestore()
-			.collection("users")
-			.doc(user)
-			.collection("stocks")
-			.get()
-			.then((snapshot) => {
-				if (
-					snapshot.docs.length !== 0 &&
-					portfolioDifference.length === 0
-				) {
-					snapshot.forEach((doc) => {
-						if (portfolioStocks.length < 4) {
-							portfolioStocks.push(doc.data().symbol);
-							portfolioShares.push(doc.data().shares);
-							portfolioMoneyPaid.push(
-								parseFloat(doc.data().moneyPaid)
-							);
-							this.getLatestPrice(
-								portfolioStocks[parseInt(i)],
-								i
-							);
-							i++;
-						}
-					});
-				} else if (this._isMounted && portfolioStocks.length === 0) {
-					this.setState({
-						portfolioLoader: "nothing",
-					});
-				}
-			})
-			.then(() => {
-				if (this.portfolio.current && portfolioStocks.length > 0) {
-					this.portfolio.current.style.display = "block";
-				}
-			})
-			.then(() => {
-				setTimeout(() => {
-					let val = portfolioValue.reduce(
-						(a, b) => Number(a) + Number(b),
-						0
-					);
-					if (this._isMounted) {
-						this.setState({
-							accountValue:
-								"$" +
-								numberWithCommas(
-									Number(val) +
-										Number(this.state.fundsWithoutCommas)
-								),
-						});
-					}
-				}, 1300);
-			})
-			.then(() => {
-				if (portfolioStocks.length > 0) {
-					setTimeout(() => {
-						if (this._isMounted) {
-							this.setState({
-								portfolioLoader: true,
-							});
-						}
-					}, 1200);
-				}
-			})
-			.catch((error) => {
-				if (this._isMounted) {
-					this.setState({
-						portfolioLoader: false,
-					});
-				}
-			});*/
-	}
-
-	/*
-	 * returns if element is in array
-	 * @param {arr} array
-	 * @param {val} value of searched element
-	 */
-
-	isInArray(arr, val) {
-		return arr.indexOf(val) > -1;
 	}
 
 	getWatchlist(){
-		/*let user = getAuth().currentUser.uid;
-		db.collection("users")
-			.doc(user)
-			.get()
-			.then((doc) => {
-				watchlist = doc.data()["watchlist"];
-				console.log(watchlist);
-				console.log(doc.data()["watchlist"]);
-			})*/
+
 	}
 	
 
 	componentDidMount() {
 		this._isMounted = true;
-
-		/*
-		 * checks if market is open and changes state
-		 */
-		if (this._isMounted) {
-			this.context.position.getCache$().subscribe(doc => {
-				if (typeof doc.data() !== "undefined" &&this._isMounted) {
-					this.setState({
-						fundsWithoutCommas: doc.data().currentfunds,
-					});
-				}
-			});
-			document.title = this.props.title + " - Dashboard";
-		}
+		this.context.position.getCache$().subscribe(doc => {
+			if (typeof doc.data() !== "undefined") {
+				this.setState({
+					fundsWithoutCommas: doc.data().currentfunds,
+				});
+			}
+		});
+		document.title = this.props.title + " - Dashboard";
 	}
 
 	componentWillUnmount() {
@@ -326,36 +127,72 @@ class Dashboard extends React.Component {
 
 	render() {
 		return (
+			!/xs/.test(this.props.width) ?
+
 			<Grid container spacing={1}>
-				<Grid item md={6} container direction={"column"} spacing={1}>
+
+				<Grid item md={6} sm={6} container direction={"column"} spacing={1}>
+
 					<Grid item>
 						<DashboardChart/>
 					</Grid>
+
 					<Grid item>
 						<DashboardSectors/>
 					</Grid>
+
+					<Grid item>
+						<DashboardNews/>
+					</Grid>
+
 				</Grid>
-				<Grid item md={3} container direction={"column"} spacing={1}>
-					<Grid item>
-						<Card>
-							<CardHeader title="Stocks"/>
-							<CardContent>
-								<Portfolio bodyOnly={true}/>
-							</CardContent>
-						</Card>
+
+				<Grid item md={3} sm={6} container direction={"column"} spacing={1}>
+
+					<Grid item style={{position: 'sticky', top: '64px'}}>
+						<DashboardCard title="Stocks">
+							<Portfolio bodyOnly={true}/>
+						</DashboardCard>
 					</Grid>
-					<Grid item>
-						<Card>
-							<CardHeader title="Watchlist"/>
-							<CardContent>
-								<Watchlist bodyOnly={true}/>
-							</CardContent>
-						</Card>
+
+					<Grid item style={{position: 'sticky', top: '472px'}}>
+						<DashboardCard title="Watchlist">
+							<Watchlist bodyOnly={true}/>
+						</DashboardCard>
 					</Grid>
+
 				</Grid>
 			</Grid>
+
+		: <Grid container spacing={1} direction={"column"} >
+
+			<Grid item>
+				<DashboardChart/>
+			</Grid>
+
+			<Grid item>
+				<DashboardCard title="Stocks">
+					<Portfolio bodyOnly={true}/>
+				</DashboardCard>
+			</Grid>
+
+			<Grid item>
+				<DashboardCard title="Watchlist">
+					<Watchlist bodyOnly={true}/>
+				</DashboardCard>
+			</Grid>
+
+			<Grid item>
+				<DashboardSectors/>
+			</Grid>
+
+			<Grid item>
+				<DashboardNews/>
+			</Grid>
+
+		</Grid>
 		);
 	}
 }
 
-export default Dashboard;
+export default withWidth()(Dashboard);

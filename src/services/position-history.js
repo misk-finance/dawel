@@ -13,8 +13,13 @@ import {
     updateDoc,
 } from 'firebase/firestore';
 import {getAuth} from 'firebase/auth';
-import {mergeMap} from "rxjs/operators";
+import {flatMap, map, mergeMap, take} from "rxjs/operators";
 import {SymbolCacheContext} from "./symbol-cache";
+import moment from 'moment-timezone';
+import {ReplaySubject, Subject} from "rxjs";
+import {InfiniteQueryObserver, QueryObserver} from "react-query";
+
+
 
 const { createContext } = React;
 
@@ -37,10 +42,26 @@ export const PositionProvider = (props) => {
     );
 };
 
+
+export class PositionRefetch {
+
+
+}
+
+
 export class PositionHistory {
 
     api = null;
     sc = null;
+
+    marketStatusOverride = null;
+
+    marketStatus$ = new ReplaySubject(1);
+    currentFunds$ = new ReplaySubject(1);
+
+    constructor() {
+        this.marketStatus$.next(this.isMarketOpen());
+    }
 
     getUser(){
         return getAuth().currentUser ? getAuth().currentUser.uid : null;
@@ -73,15 +94,17 @@ export class PositionHistory {
     }
 
     buy$(pos, val){
-        return this.getCache$().pipe(
-            mergeMap(vDoc => {
-                let nDoc = doc(collection(this.getUserCollection(), 'stocks'), "Position" + vDoc.data().positions);
-                return fromPromise(
-                    setDoc(nDoc, pos)
-                )
-            }),
-            mergeMap(() => this.updateFunds$(val))
-        );
+        let nDoc = doc(collection(this.getUserCollection(), 'stocks'));
+        return fromPromise(
+            setDoc(nDoc, pos)
+        ).pipe(mergeMap(() => this.updateFunds$(val)));
+    }
+
+    getCurrentFunds$(){
+        this.getCache$().subscribe(value => {
+            this.currentFunds$.next(parseFloat(value.data().currentfunds));
+        })
+        return this.currentFunds$;
     }
 
     updateFunds$(value){
@@ -89,7 +112,10 @@ export class PositionHistory {
             updateDoc(this.getUserCollection(), {
                 currentfunds: value,
             })
-        );
+        ).pipe(mergeMap(v => {
+            this.currentFunds$.next(parseFloat(value));
+            return this.currentFunds$;
+        }));
     }
 
     updateWatchlist(doc){
@@ -108,9 +134,98 @@ export class PositionHistory {
         );
     }
 
+    isMarketReallyOpen(){
+        let m = moment().tz('Asia/Baghdad');
+        return m.day() < 5 && m.hour() >= 10 && m.hour() < 16;
+    }
+
+    isMarketOpen(){
+        return this.marketStatusOverride !== null ? this.marketStatusOverride : this.isMarketReallyOpen();
+    }
+
+    setMarketStatusOverride(value){
+        this.marketStatusOverride = value;
+        this.marketStatus$.next(this.isMarketOpen());
+    }
+
+    recordPosition$(){
+        return this.getTotalValue$().pipe(
+            mergeMap(value => this.update$(value.sumWithFunds).pipe(map(v => value)))
+        );
+    }
+
+    getTotalValue$(){
+        let ret = new Subject();
+        this.loadStocks$().subscribe((stocks) => {
+            let total = stocks.docs;
+            let items = [];
+            let limit = 10;
+
+            if(total.length === 0){
+                this.getCache$().subscribe(value => {
+                    let sumWithFunds = parseFloat(value.data().currentfunds);
+                    ret.next({sum: sumWithFunds, sumWithFunds: sumWithFunds, data: items});
+                });
+                return;
+            }
+
+            const getSymbolsToQuery = () => {
+                let itemCount = items.length;
+                return total.filter((collection, index) => index >= itemCount && index < itemCount + limit).map(item => item.data().symbol)
+            }
+
+            let obs = this.api.api.getFetchBulkQuotesQuery$(getSymbolsToQuery(), {
+                refetchOnWindowFocus: false,
+                enabled: false,
+                getNextPageParam: (lastPage, pages) => {
+                    return getSymbolsToQuery()
+                }
+            });
+
+            const listener = rq => {
+
+                if (rq.data && rq.data.pages){
+                    let newItems = [];
+                    rq.data.pages.forEach((value) => {
+                        newItems = newItems.concat(value.result)
+                    });
+                    items = newItems;
+
+                    if(items.length < total.length){
+                        obs.fetchNextPage();
+                    }
+
+                    if(items.length === total.length){
+                        this.getCache$().subscribe(value => {
+                            let sum = 0;
+                            for(let i in total){
+                                let doc = total[i];
+                                sum += parseFloat(doc.data().shares * items[i].regularMarketPrice);
+                            }
+
+                            let sumWithFunds = parseFloat(value.data().currentfunds) + sum;
+                            ret.next({sum: sum, sumWithFunds: sumWithFunds, data: items});
+                        });
+                    }
+                }
+            };
+
+            obs.subscribe(listener);
+
+            if(!obs.getCurrentResult().data) {
+                obs.fetchNextPage();
+            }else {
+                listener(obs.getCurrentResult());
+            }
+        });
+        return ret.pipe(take(1));
+    }
 
 
 }
+
+
+
 
 export function usePosition(){
 
@@ -119,7 +234,7 @@ export function usePosition(){
 
     const [items, setItems] = useState([]);
     const [total, setTotal] = useState([]);
-    const [canFetch, setCanFetch] = useState(true);
+    const [canFetch, setCanFetch] = useState(false);
     const [callback, setCallback] = useState(null);
     const [doUpdate, setDoUpdate] = useState(true);
 
@@ -145,7 +260,6 @@ export function usePosition(){
     const reset = () => {
         setCanFetch(true);
         setItems([]);
-
     }
 
     const postUpdate = (sum) => {
@@ -163,6 +277,11 @@ export function usePosition(){
     }
 
     useEffect(()=> {
+
+    }, []);
+
+    useEffect(()=> {
+
 
         if(canFetch && total.length == 0){
             postUpdate(100000);
@@ -202,6 +321,7 @@ export function usePosition(){
 
     const handleUpdate = (f, noUpdate) => {
         pos.position.loadStocks$().subscribe((v) => {
+            reset();
             setCallback( () => f);
             setDoUpdate(!noUpdate);
             setTotal(v.docs);
@@ -211,6 +331,6 @@ export function usePosition(){
     return handleUpdate;
 }
 
-export function UsePosition (props) {
+export function UsePosition(props) {
     return props.children(usePosition());
 }

@@ -3,13 +3,12 @@ import {getAuth} from 'firebase/auth';
 import {arrayRemove, arrayUnion, getFirestore} from 'firebase/firestore';
 
 import {Link} from "react-router-dom";
-import "chartjs-plugin-annotation";
 
 import Loader from "../Elements/Loader.js";
 import KeyInfo from "./KeyInfo";
 import {SymbolKeyinfo} from "./symbol-keyinfo";
 import {SymbolProfitability} from "./symbol-profitability";
-import {Box, Button, Divider, Grid, IconButton, TextField, Typography} from "@material-ui/core";
+import {Box, Button, Divider, Grid, IconButton, TextField, Typography, withStyles} from "@material-ui/core";
 import {SymbolStatchart} from "./symbol-statchart";
 import {SymbolEarnings} from "./symbol-earnings";
 import {UseQuoteSummaryQuery} from "../../services/react-query-components";
@@ -19,6 +18,7 @@ import BoxPaper from "../Elements/BoxPaper";
 import {SymbolSectorchip} from "./symbol-sectorchip";
 import BookmarkBorderOutlinedIcon from "@material-ui/icons/BookmarkBorderOutlined";
 import BookmarkTwoToneIcon from '@material-ui/icons/BookmarkTwoTone';
+import {mergeMap} from "rxjs/operators";
 
 
 const db = getFirestore();
@@ -88,13 +88,11 @@ let symbol;
 
 let chartData1 = [];
 let labels = [];
-let symbolsOnly = [];
+
 let closePrice;
 let stockData = {};
 let keyData = [];
 let keyDataLabel = [];
-let allSymbols = [];
-let volume = [];
 
 let watchlist = [];
 
@@ -107,7 +105,7 @@ let oneYearLabels = [];
 let oneMonth = [];
 let oneMonthLabels = [];
 
-export default class stockPage extends React.Component {
+export class StockPage extends React.Component {
 	static contextType = PositionContext;
 
 	_isMounted = false;
@@ -134,43 +132,12 @@ export default class stockPage extends React.Component {
 		this.year = React.createRef();
 		this.bookmark = React.createRef();
 
-		this.changeFocus = this.changeFocus.bind(this);
 		this.getWatchlist = this.getWatchlist.bind(this);
 		this.handleWatchlist = this.handleWatchlist.bind(this);
 		this.getOneDayChart = this.getOneDayChart.bind(this);
 		this.getOneMonthChart = this.getOneMonthChart.bind(this);
     	this.getOneYearChart = this.getOneYearChart.bind(this);
 
-		this.data1 = (canvas) => {
-			const ctx = canvas.getContext("2d");
-			const gradient = ctx.createLinearGradient(0, 0, 600, 10);
-			gradient.addColorStop(0, "#7c83ff");
-			gradient.addColorStop(1, "#7cf4ff");
-			let gradientFill = ctx.createLinearGradient(0, 0, 0, 100);
-			gradientFill.addColorStop(0, "rgba(124, 131, 255,.3)");
-			gradientFill.addColorStop(0.2, "rgba(124, 244, 255,.15)");
-			gradientFill.addColorStop(1, "rgba(255, 255, 255, 0)");
-			ctx.shadowBlur = 5;
-			ctx.shadowOffsetX = 0;
-			ctx.shadowOffsetY = 4;
-			return {
-				labels,
-				datasets: [
-					{
-						lineTension: 0.1,
-						label: "",
-						pointBorderWidth: 0,
-						pointHoverRadius: 0,
-						borderColor: gradient,
-						backgroundColor: gradientFill,
-						pointBackgroundColor: gradient,
-						fill: true,
-						borderWidth: 2,
-						data: chartData1,
-					},
-				],
-			};
-		};
 	}
 
 	getApiContext(){
@@ -188,7 +155,14 @@ export default class stockPage extends React.Component {
 
 
 	prepareChartData(avalues, alabels, symbol, interval, range){
-		this.getApiContext().api.getChart$(symbol, interval, range).subscribe(value => {
+		let value = null;
+		console.log(avalues, symbol)
+		this.getApiContext().api.getChartQuery$(symbol, interval, range).subscribe(rq => {
+			if(!rq.data) {
+				return;
+			}
+			value = rq.data;
+
 			labels = [];
 			chartData1 = [];
 			let result = value.result[0];
@@ -293,83 +267,13 @@ export default class stockPage extends React.Component {
 		options.annotation = "";
 	  }
 
-	
-
-	/*
-	 * check i value is in array
-	 * @param {arr} array
-	 * @param {val} value
-	 */
-	isInArray(arr, val) {
-		return arr.indexOf(val) > -1;
-	}
-
-	/*
-	 * changes look of buttons above chart
-	 * @param {option} selected option
-	 */
-
-	changeFocus(option) {
-		setTimeout(
-			function () {
-				var elems = document.querySelectorAll(".Chart__option");
-
-				[].forEach.call(elems, function (el) {
-					el.classList.remove("active");
-				});
-				switch (option) {
-					case 1:
-						this.day.current.classList.add("active");
-						break;
-
-					case 2:
-						this.month.current.classList.add("active");
-						break;
-
-					case 3:
-						this.year.current.classList.add("active");
-						break;
-
-					case 4:
-						this.years.current.classList.add("active");
-						break;
-
-					case 5:
-						this.ytd.current.classList.add("active");
-						break;
-
-					default:
-						this.ytd.current.classList.add("active");
-						break;
-				}
-			}.bind(this),
-			200
-		);
-	}
-
-
-
 	rendering() {
-		document.title = `${this.props.title} - ${symbol}`;
-
-		setTimeout(() => {
-			if (!this.state.marketStatus && this.buyInput.current) {
-				this.buyInput.current.disabled = true;
-				this.buyInput.current.placeholder = "MARKET CLOSED";
-			} else if (this.buyInput.current) {
-				this.buyInput.current.disabled = false;
-				this.buyInput.current.placeholder = "QUANTITY";
+		this.context.position.api.api.getQuoteSummaryQuery$(symbol).subscribe(rq => {
+			if(rq.data) {
+				this.processQuoteSummary(rq.data)
 			}
-		}, 1000);
-
+		});
 		this.getOneDayChart();
-		if (document.querySelector(".hamburger")) {
-			document
-				.querySelector(".hamburger")
-				.addEventListener("click", (e) => {
-					e.currentTarget.classList.toggle("is-active");
-				});
-		}
 	}
 
 	getWatchlist() {
@@ -413,45 +317,35 @@ export default class stockPage extends React.Component {
 	}
 
 	handleBuyStock(num) {
-
 		let val = Number(num) * Number(this.state.latestPrice);
 		let sum = Number(this.state.fundsWithoutCommas) - val;
 
-		this.context.position.buy$({
+		this.context.position.recordPosition$().pipe(mergeMap(value => this.context.position.buy$({
 			symbol,
 			moneyPaid: val.toFixed(2),
 			shares: num,
 			value: val.toFixed(2),
-		}, sum.toFixed(2)).subscribe(res => {
-			console.log(22, res);
-			this.getFunds();
-			if (this._isMounted) {
-				this.setState({
-					buyConfirmation: false,
-				});
-			}
+		}, sum.toFixed(2)))).subscribe(res => {
+			this.setState({
+				buyConfirmation: false,
+			});
 		});
 	}
 
 	getFunds() {
-
-		this.context.position.getCache$().subscribe(doc => {
-			if (typeof doc.data() !== "undefined" && this._isMounted) {
-				this.setState({
-					fundsWithoutCommas: doc.data().currentfunds,
-					funds: "$" + this.numberWithCommas(doc.data().currentfunds),
-				});
-			}
+		this.context.position.getCurrentFunds$().subscribe(value => {
+			this.setState({
+				fundsWithoutCommas: value,
+				funds: "$" + this.numberWithCommas(value),
+			});
 		});
 	}
 
 	componentDidMount() {
-		this._isMounted = true;
-		this.setState({
-			marketStatus: true,
-		})
 
+		this._isMounted = true;
 		symbol = window.location.href.split("/")[window.location.href.split("/").length - 1];
+		document.title = `${this.props.title} - ${symbol}`;
 
 		this.getScContext().cache.loaded.subscribe(()=> {
 			if (this._isMounted) {
@@ -464,12 +358,37 @@ export default class stockPage extends React.Component {
 			}
 		});
 
+		this.context.position.marketStatus$.subscribe(value => {
+			this.setState({
+				marketStatus: value,
+			})
+		});
+
 		this.getFunds();
 		this.getWatchlist();
 	}
 
 	componentWillUnmount() {
 		this._isMounted = false;
+		console.log(2222)
+		chartData1 = [];
+		labels = [];
+
+		closePrice = null;
+		stockData = {};
+		keyData = [];
+		keyDataLabel = [];
+
+		watchlist = [];
+
+		oneDay = [];
+		oneDayLabels = [];
+
+		oneYear = [];
+		oneYearLabels = [];
+
+		oneMonth = [];
+		oneMonthLabels = [];
 	}
 
 	processQuoteSummary(value){
@@ -549,20 +468,14 @@ export default class stockPage extends React.Component {
 
 	render() {
 		return (<>
-				{this.state.buyConfirmation === true && (
-					<UsePosition>{(posHook)=> {
-						return (<div className="buyConfirmation">
+				{this.state.buyConfirmation === true &&
+						<div className="buyConfirmation">
 							<h3>
 								Are you sure you want to buy{" "}
 								{this.buyInput.current.value} shares of {symbol} for{" "}
 								<span style={{fontWeight: "bold"}}>
-								{parseFloat(
-									(
-										this.buyInput.current.value *
-										this.state.latestPrice
-									).toFixed(2)
-								)}
-							</span>{" "}
+									{parseFloat((this.buyInput.current.value * this.state.latestPrice).toFixed(2))}
+								</span>{" "}
 								SAR
 							</h3>
 							<div>
@@ -570,7 +483,7 @@ export default class stockPage extends React.Component {
 									className="stockPage__buy-button"
 									onClick={() => {
 										if (this.buyInput.current.value * this.state.latestPrice <= this.state.fundsWithoutCommas) {
-											posHook(()=>this.handleBuyStock(this.buyInput.current.value));
+											this.handleBuyStock(this.buyInput.current.value);
 										} else if (this._isMounted) {
 											this.setState({
 												buyConfirmation: false,
@@ -593,79 +506,68 @@ export default class stockPage extends React.Component {
 									CANCEL
 								</button>
 							</div>
-						</div>)
-					}
-					}</UsePosition>
-				)}
+						</div>
+				}
 
 				{this.state.valid === "" && <Loader />}
 
-				{this.state.valid && (
-
+				{this.state.valid &&
 					<Grid container
 						  alignItems="stretch"
 						  spacing={1}
 					>
-						{this.state.loaded ? (
-							<UseQuoteSummaryQuery symbol={symbol} api={this.getApiContext()}>
-								{({data, status, error}) => {
-
-									if(keyData.length == 0) this.processQuoteSummary(data);
-
-									return (<React.Fragment>
+						{this.state.loaded ?
+									<React.Fragment>
 										<Grid item md={9}>
 											<SymbolSectorchip symbol={symbol}/>
 										</Grid>
 
 										<Grid container item md={9} spacing={1}>
 											<Grid item md={8} xs={8}>
-
 												{chartData1.length >1 && <SymbolCandlechart data={chartData1}
 																							volume={labels}
 																							getOneDayChart={this.getOneDayChart}
 																							getOneMonthChart={this.getOneMonthChart}
 																							getOneYearChart={this.getOneYearChart}
 												/>}
-
-												{/*<FullChart
-													changeFocus={this.changeFocus}
-													getOneDayChart={this.getOneDayChart}
-													getOneMonthChart={this.getOneMonthChart}
-													getOneYearChart={this.getOneYearChart}
-													data1={this.data1}
-													stockData={stockData}
-													day={this.day}
-													year={this.year}
-													month={this.month}
-												/>
-												*/}
 											</Grid>
 
 											<Grid item md>
 												<BoxPaper transparent={true}>
-													<Typography variant={"h4"}>
-														<IconButton onClick={this.handleWatchlist}>
-															{this.state.fillColor ? <BookmarkTwoToneIcon/> : <BookmarkBorderOutlinedIcon/>}
-														</IconButton>
-														{stockData.name}
-													</Typography>
+													<Grid container justify={"flex-end"}>
+														<Grid item md>
+															<Typography variant={"h6"}>
+																{stockData.name}
+															</Typography>
+														</Grid>
+														<Grid item md={2}>
+															<IconButton onClick={this.handleWatchlist}>
+																{this.state.fillColor ? <BookmarkTwoToneIcon/> : <BookmarkBorderOutlinedIcon/>}
+															</IconButton>
+														</Grid>
+													</Grid>
 													<Divider/>
 													<Grid container>
 														<Grid item>
-															<Typography variant={"h5"}>SAR {this.state.latestPrice}</Typography>
+															<Typography variant={"h6"}>SAR {this.state.latestPrice}</Typography>
 														</Grid>
 														<Grid item>
 															<Box p={1}>
-																<Typography style={{color: this.state.changeColor,}}>{stockData.change} ({stockData.changePercent}%)</Typography>
+																<Typography className={this.state.changeColor === "#3ae885" ? this.props.classes.price_up : this.props.classes.price_down}>{stockData.change} ({stockData.changePercent}%)</Typography>
 															</Box>
 														</Grid>
 													</Grid>
 													<Grid container alignItems={"stretch"}>
 														<Grid item md={8}>
-															<TextField variant="outlined" size={'small'} inputRef={this.buyInput} />
+															<TextField variant="outlined" size={'small'}
+																	   inputRef={this.buyInput}
+																	   disabled={!this.state.marketStatus}
+																	   placeholder={this.state.marketStatus ? 'Quantity' : 'Market closed'}
+															/>
 														</Grid>
 														<Grid item md>
 															<Button variant="contained" color={'primary'} style={{height:'100%'}}
+																	disabled={!this.state.marketStatus}
 																	onClick={function () {
 																		let value = this.buyInput.current.value;
 																		if (value.length > 0 && value > 0 && value * this.state.latestPrice <= this.state.fundsWithoutCommas && this.state.marketStatus && this._isMounted) {
@@ -685,12 +587,10 @@ export default class stockPage extends React.Component {
 												</BoxPaper>
 											</Grid>
 										</Grid>
-									</React.Fragment>);
-								}}
-							</UseQuoteSummaryQuery>
-						) : (
+									</React.Fragment>
+						 :
 							<Loader />
-						)}
+						}
 
 
 						<Grid item container
@@ -725,16 +625,27 @@ export default class stockPage extends React.Component {
 						</Grid>
 					</Grid>
 
-				)}
+				}
 
-				{this.state.valid === false && (
+				{this.state.valid === false &&
 					<div className="wrongSymbol">
 						<h1>Unknown Symbol</h1>
 						<h3>
 							Go to <Link to="/dashboard">Dashboard</Link>
 						</h3>
 					</div>
-				)}
+				}
 		</>);
 	}
 }
+
+const styles = theme => ({
+	price_up: {
+		color: theme.palette.success.main
+	},
+	price_down: {
+		color: theme.palette.error.main
+	}
+})
+
+export default withStyles(styles, { withTheme: true })(StockPage);

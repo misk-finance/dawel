@@ -1,12 +1,19 @@
 import React from "react";
 import Chip from "@material-ui/core/Chip";
-import {Avatar, makeStyles} from "@material-ui/core";
+import {Avatar, makeStyles, Typography} from "@material-ui/core";
+import {Link} from "react-router-dom";
 
 const useStyles = makeStyles((theme) => ({
     chip: {
         margin: theme.spacing(0.5),
     },
 }));
+
+function LinkTypographyChip (props) {
+    return (
+        <Typography variant={"h6"} component={Link} {...props}/>
+    );
+}
 
 export function SectorChip (props) {
 
@@ -17,7 +24,7 @@ export function SectorChip (props) {
     }
 
     return (
-        <Chip component="a" href={`/sectors/${props.value}`} clickable variant="outlined"
+        <Chip component={LinkTypographyChip} to={`/sectors/${props.value}`} clickable variant="outlined"
               avatar={<Avatar>{getAvatarText(props.value)}</Avatar>}
               label={props.value}
               className={classes.chip}  />

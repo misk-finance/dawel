@@ -1,8 +1,8 @@
 import {Typography, useTheme} from "@material-ui/core";
 import React, {useContext, useState} from "react";
-import {Bar, BarChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis} from "recharts";
 import {ApiContext} from "../../services/rapidapi";
 import BoxPaper from "../Elements/BoxPaper";
+import ReactApexChart from "react-apexcharts";
 
 
 const moduleDic = {
@@ -28,11 +28,12 @@ export function SymbolStatchart (props) {
             if(y){
                 let s = key.split(',');
                 if(s.length > 1){
-                    ret = s.reduce((previousValue, currentValue) => {
+                    /*ret = s.reduce((previousValue, currentValue) => {
                         let p = y[previousValue] ? y[previousValue].raw : 0;
                         let c = y[currentValue] ? y[currentValue].raw : 0;
                         return p + c;
-                    });
+                    });*/
+                    ret = s[1].raw + s[0].raw;
                 } else {
                     ret = y[key].raw;
                 }
@@ -58,28 +59,73 @@ export function SymbolStatchart (props) {
             makeDataItem('incomeStatementHistory', 'EBIT', 'ebit'),
 
             makeDataItem('balanceSheetHistory', 'Cash', 'cash'),
-            makeDataItem('incomeStatementHistory', 'Net income available to common stackholders', 'netIncomeApplicableToCommonShares'),
-            makeDataItem('balanceSheetHistory', 'Debt', 'longTermDebt,shortLongTermDebt'),
+            makeDataItem('incomeStatementHistory', "Net income to stackholders", 'netIncomeApplicableToCommonShares'),
+            //makeDataItem('balanceSheetHistory', 'Debt', 'longTermDebt,shortLongTermDebt'),
         ]);
     }
 
 
-
     return (
-        <React.Fragment>
-            <Typography variant="h3">History</Typography>
-            <BoxPaper transparent={true}>
-                <ResponsiveContainer minWidth={400} width="100%" height={400}>
-                    <BarChart data={chartData}>
-                        <XAxis dataKey="name" stroke={theme.palette.text.primary}/>
-                        <YAxis stroke={theme.palette.text.secondary} />
-                        <Tooltip contentStyle={{'background-color':'#333333'}}/>
-                        <Legend />
-                        <Bar name="2020" dataKey="cy" fill={theme.palette.primary.main} />
-                        <Bar name="2019" dataKey="py" fill={theme.palette.secondary.main} />
-                    </BarChart>
-                </ResponsiveContainer>
-            </BoxPaper>
-        </React.Fragment>
+        <ReactApexChart type="bar"
+                        height={400}
+                        series={[
+                                {name: '2020', data: chartData.map(value => value.cy ? value.cy.toFixed(2): 0)},
+                                {name: '2019', data: chartData.map(value => value.py ? value.py.toFixed(2): 0)},
+                            ]}
+                        options={{
+                            chart: {
+                                type: 'bar',
+                                height: 400
+                            },
+                            plotOptions: {
+                                bar: {
+                                    horizontal: false,
+                                    columnWidth: '55%',
+                                    endingShape: 'rounded'
+                                },
+                            },
+                            colors: [theme.palette.primary.main, theme.palette.secondary.main],
+                            dataLabels: {
+                                enabled: false
+                            },
+                            grid:{
+                                show: false
+                            },
+                            xaxis: {
+                                categories: chartData.map(value => value.name),
+                            },
+                            yaxis: {
+                                title: {
+                                    text: 'SAR (billions)'
+                                }
+                            },
+                            tooltip: {
+                                y: {
+                                    formatter: function (val) {
+                                        return "SAR " + val + " billions"
+                                    }
+                                }
+                            },
+                            theme: {
+                                mode: theme.palette.type
+                            }
+                        }}
+        />
     );
 }
+/*
+<React.Fragment>
+    <Typography variant="h6">History</Typography>
+    <BoxPaper transparent={true}>
+        <ResponsiveContainer minWidth={400} width="100%" height={400}>
+            <BarChart data={chartData}>
+                <XAxis dataKey="name" stroke={theme.palette.text.primary}/>
+                <YAxis stroke={theme.palette.text.secondary} />
+                <Tooltip contentStyle={{'background-color':'#333333'}}/>
+                <Legend />
+                <Bar name="2020" dataKey="cy" fill={theme.palette.primary.main} />
+                <Bar name="2019" dataKey="py" fill={theme.palette.secondary.main} />
+            </BarChart>
+        </ResponsiveContainer>
+    </BoxPaper>
+</React.Fragment>*/

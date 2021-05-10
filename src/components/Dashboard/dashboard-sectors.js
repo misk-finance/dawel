@@ -1,9 +1,20 @@
-import React, {useContext, useState} from "react";
+import React, {useContext, useEffect, useState} from "react";
 import {SymbolCacheContext} from "../../services/symbol-cache";
-import {Box, Fade, FormControlLabel, makeStyles, Switch, Typography} from "@material-ui/core";
+import {
+    Accordion,
+    AccordionDetails,
+    AccordionSummary,
+    Box,
+    Fade,
+    FormControlLabel,
+    makeStyles,
+    Switch,
+    Typography
+} from "@material-ui/core";
 import {SectorChip} from "../SectorPage/sector-chip";
 import Loader from "../Elements/Loader";
 import BoxPaper from "../Elements/BoxPaper";
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 
 const useStyles = makeStyles((theme) => ({
     root: {
@@ -13,24 +24,22 @@ const useStyles = makeStyles((theme) => ({
         listStyle: 'none',
         padding: theme.spacing(0.5),
         margin: 0,
-    }
+    },
+    paper: {
+        backgroundColor: "transparent",
+    },
 }));
 
 
 export function DashboardSectors (props) {
 
     const classes = useStyles();
-    const ctx = useContext(SymbolCacheContext);
+    const sc = useContext(SymbolCacheContext);
 
-    const [checked, setChecked] = useState(false);
-    const [loaded, setLoaded] = useState(false);
-
-    const handleChange = () => {
-        setChecked((prev) => !prev);
-    };
+    const [cacheLoaded, setCacheLoaded] = useState(false);
 
     const getChips = (f) => (
-        ctx.cache.getSectors().filter(f).map(value => {
+        sc.cache.getSectors().filter(f).map(value => {
             return (
                 <li key={value}>
                     <SectorChip value={value}/>
@@ -39,30 +48,45 @@ export function DashboardSectors (props) {
         })
     );
 
-    if(ctx.cache.getSectors().length == 0) ctx.cache.loaded.subscribe(()=>{
-        setLoaded(true);
-    });
+    useEffect(() => {
+        sc.cache.loaded.subscribe(value => {
+            setCacheLoaded(true);
+        });
+    }, []);
 
 
     return (
-        <BoxPaper transparent={true}>
-            <Typography variant={"h3"}>Popular lists</Typography>
-            {ctx.cache.getSectors().length > 0
-            ? <React.Fragment>
-                <FormControlLabel
-                    control={<Switch checked={checked} onChange={handleChange} />}
-                    label="Show more"
-                />
-                <Box component="ul" className={classes.root}>
-                    {getChips((value, i) => i < 10)}
-                </Box>
-                <Fade in={checked}>
-                    <Box component="ul" className={classes.root}>
-                        {getChips((value, i) => i >= 10)}
-                    </Box>
-                </Fade>
-            </React.Fragment>
-            : <Loader/>}
-        </BoxPaper>
+        <>
+        <Typography variant={"h6"}>Popular lists</Typography>
+
+        {sc.cache.getSectors().length > 0 ?
+                <Accordion className={classes.paper}>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                        <Box component="ul" className={classes.root}>
+                            {getChips((value, i) => i < 10)}
+                        </Box>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <Box component="ul" className={classes.root}>
+                            {getChips((value, i) => i >= 10)}
+                        </Box>
+                    </AccordionDetails>
+                </Accordion>
+
+        : <Loader/>}
+
+        </>
     );
 }
+/*<FormControlLabel
+                control={<Switch checked={checked} onChange={handleChange} />}
+                label="Show more"
+            />
+            <Box component="ul" className={classes.root}>
+                {getChips((value, i) => i < 10)}
+            </Box>
+            <Fade in={checked}>
+                <Box component="ul" className={classes.root}>
+                    {getChips((value, i) => i >= 10)}
+                </Box>
+            </Fade>*/

@@ -1,9 +1,11 @@
 import {fromPromise} from "rxjs/internal-compatibility";
 
-import React from 'react';
+import React, {useContext} from 'react';
 import {map, mergeMap} from "rxjs/operators";
 import {of} from "rxjs";
-import {useInfiniteQuery, useQuery} from "react-query";
+import {InfiniteQueryObserver, QueryObserver, useInfiniteQuery, useQuery} from "react-query";
+
+
 
 const { createContext } = React;
 
@@ -13,8 +15,11 @@ export const ApiContext = createContext(null);
 export const ApiProvider = (props) => {
     let useMock = false;
 
+    let ret = useMock ? new MockApi() : new RapidApi();
+    ret.qc = props.queryClient;
+
     const value = {
-        api: props.api || (useMock ? new MockApi() : new RapidApi()),
+        api: ret,
     };
 
     return (
@@ -31,24 +36,26 @@ export class RapidApi {
 
     rqOptions = {retry: true };
 
+    qc = null;
+
     _pipe$(o, mapVar){
         return o.pipe(
             map(value => value[mapVar])
         );
     }
 
-    _fetch(url){
+    _fetch(url, headers){
         return fetch(url, {
             "method": "GET",
-            "headers": {
+            "headers": {...{
                 "x-rapidapi-key": this.apiKey,
                 "x-rapidapi-host": this.apiHost
-            }
+            }, ...headers}
         })
     }
 
-    _get$(url){
-        return fromPromise(this._fetch(url)).pipe(mergeMap(value => value.json()));
+    _get$(url, headers){
+        return fromPromise(this._fetch(url, headers)).pipe(mergeMap(value => value.json()));
     }
 
     getChart$(symbol, interval, range){
@@ -63,6 +70,20 @@ export class RapidApi {
         return this._pipe$(this._get$(`https://yahoo-finance-low-latency.p.rapidapi.com/v6/finance/quote?symbols=${symbols.join(',')}`), 'quoteResponse');
     }
 
+    getNews$(query, freshness, count){
+        return this._get$(`https://bing-news-search1.p.rapidapi.com/news/search?q=${query}&safeSearch=Off&textFormat=Raw&freshness=${freshness}&sortBy=date&count=${count}`, {
+            "x-rapidapi-host": "bing-news-search1.p.rapidapi.com",
+            "x-bingapis-sdk": "true"
+        });
+    }
+
+    getArticles$(marketId){
+        return this._get$(`https://argaam-data-apis-free.p.rapidapi.com/api/v1/json/articles/get-popular-articles?lang=ar&marketID=${marketId}`, {
+            "x-rapidapi-host": "argaam-data-apis-free.p.rapidapi.com"
+        });
+    }
+
+
 
   /*  useChartQuery(symbol, interval, range){
         return useQuery('chart', () => this.getChart$(symbol, interval, range).toPromise(), this.rqOptions);
@@ -72,9 +93,33 @@ export class RapidApi {
         return () => useInfiniteQuery(queryKey ? queryKey : 'bulk_quotes', () => this.getBulkQuotes$(symbols).toPromise(), {...this.rqOptions, ...options});
     }
 
+    getFetchBulkQuotesQuery$(symbols, options, queryKey){
+        return new InfiniteQueryObserver(this.qc, {...this.rqOptions, ...options,
+                queryKey: queryKey ? queryKey : ['bulk_quotes', symbols],
+                queryFn: () => this.getBulkQuotes$(symbols).toPromise()
+            }
+        );
+    }
+
     useQuoteSummaryQuery(symbol){
         return () => useQuery('quote_summary', () => this.getQuoteSummary$(symbol).toPromise(), this.rqOptions);
     }
+
+    getQuoteSummaryQuery$(symbol){
+        return new QueryObserver(this.qc, {...this.rqOptions,
+            queryKey: ['quote_summary', symbol],
+            queryFn: () => this.getQuoteSummary$(symbol).toPromise()
+        });
+    }
+
+    getChartQuery$(symbol, interval, range){
+        return new QueryObserver(this.qc, {...this.rqOptions,
+            queryKey: ['chart', [symbol, range]],
+            queryFn: () => this.getChart$(symbol, interval, range).toPromise()
+        });
+    }
+
+
 
 }
 

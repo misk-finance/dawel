@@ -1,4 +1,4 @@
-import React, {useContext, useState} from "react";
+import React, {useContext, useEffect, useState} from "react";
 import {
     AppBar,
     Box,
@@ -33,6 +33,8 @@ import {logout} from "../auth";
 import {Autocomplete, ToggleButton, ToggleButtonGroup} from "@material-ui/lab";
 import {SymbolCacheContext} from "../../services/symbol-cache";
 import {PositionContext} from "../../services/position-history";
+import {motion} from "framer-motion";
+import {formatNumber} from "../../services/formatter";
 
 const drawerWidth = 64;
 
@@ -45,12 +47,14 @@ const useStyles = makeStyles((theme) => ({
             width: drawerWidth,
             flexShrink: 0,
         },
+        backgroundColor: theme.palette.background.default,
     },
     appBar: {
         [theme.breakpoints.up('sm')]: {
             width: `calc(100% - ${drawerWidth}px)`,
             marginLeft: drawerWidth,
         },
+        backgroundColor: theme.palette.background.default,
     },
     menuButton: {
         marginRight: theme.spacing(2),
@@ -62,7 +66,9 @@ const useStyles = makeStyles((theme) => ({
     toolbar: theme.mixins.toolbar,
     drawerPaper: {
         width: drawerWidth,
-        overflow: "hidden"
+        overflow: "hidden",
+        border: 0,
+        backgroundColor: theme.palette.background.default,
     },
     content: {
         flexGrow: 1,
@@ -81,20 +87,43 @@ const Layout = (props) => {
     const pos = useContext(PositionContext);
 
     const [mobileOpen, setMobileOpen] = useState(false);
-    const [themeMode, setThemeMode] = useState(null);
+    const [searchFocused, setSearchFocused] = useState(false);
+    const [themeMode, setThemeMode] = useState(theme.palette.type);
     const [searchOptions, setSearchOptions] = useState([]);
     const [funds, setFunds] = useState(null);
+    const [marketStatus, setMarketStatus] = useState(pos.position.isMarketOpen());
+
+    useEffect(() => {
+
+        pos.position.getCurrentFunds$().subscribe(value => {
+            setFunds(value);
+        });
+
+        pos.position.marketStatus$.subscribe(value => {
+            setMarketStatus(value);
+        });
+
+    }, []);
+
+
+    const toggleSearchFocus = () => {
+        setSearchFocused(!searchFocused);
+    }
 
     const handleDrawerToggle = () => {
         setMobileOpen(!mobileOpen);
     };
 
-    if(!themeMode) setThemeMode(theme.palette.type);
-
     const handleThemeMode = (event, value) => {
         let mode = value ? value: 'light';
         props.setTheme(mode);
         setThemeMode(mode);
+    };
+
+    const handleMarketStatusToggle = () => {
+        pos.position.setMarketStatusOverride(
+            pos.position.marketStatusOverride === null ? !pos.position.isMarketOpen()
+            : null);
     };
 
     const searchStocks = (filter) => {
@@ -105,71 +134,100 @@ const Layout = (props) => {
         setSearchOptions(sc.cache.collection.filter(item =>  (item.symbol.match(new RegExp(filter, 'i')) || item.lonaName.match(new RegExp(filter, 'i')))));
     }
 
-    pos.position.getCache$().subscribe(value => {
-        setFunds(parseFloat(value.data().currentfunds));
-    });
-
-
-
     const drawer = (
         <aside>
             <div className={classes.toolbar} />
-            <Divider />
-            <List>
-                <ListItem button component={NavLink} to="/dashboard" activeClassName="Mui-selected" exact>
-                    <ListItemIcon>
-                        <HomeOutlinedIcon color={"primary"}/>
-                    </ListItemIcon>
 
-                </ListItem>
-                <ListItem button component={NavLink} to="/portfolio" activeClassName="Mui-selected" exact>
-                    <ListItemIcon>
-                        <PieChartOutlinedIcon color={"primary"}/>
-                    </ListItemIcon>
-                </ListItem>
-                <ListItem button component={NavLink} to="/watchlist" activeClassName="Mui-selected" exact>
-                    <ListItemIcon>
-                       <BookmarkBorderOutlinedIcon color={"primary"}/>
-                    </ListItemIcon>
-                </ListItem>
-            </List>
-            <Divider />
-
-            <Box p={1}>
-                <ToggleButtonGroup
-                    value={themeMode}
-                    exclusive
-                    onChange={handleThemeMode}
-                >
-                    <ToggleButton value="dark">
-                        <Brightness4OutlinedIcon/>
-                    </ToggleButton>
-                </ToggleButtonGroup>
-            </Box>
-            <Divider />
-
-            <List>
-                <ListItem button onClick={() => logout()}>
-                    <ListItemIcon>
-                        <ExitToAppOutlinedIcon/>
-                    </ListItemIcon>
-                </ListItem>
-            </List>
-            <Grid container alignItems={"center"} justify={"center"} style={{height: '64%'}}>
+            <Grid container justify={"space-between"} direction={"column"} style={{height:'100vh'}}>
                 <Grid item>
-                    <Box style={{transform: 'rotate(-90deg)'}}>
-                    <Typography variant={'h5'} style={{whiteSpace: 'nowrap'}}>Market status: open</Typography>
-                    </Box>
+
+            <List>
+                <Grid container justify={"space-between"} direction={"column"} style={{height:'250px'}}>
+                    <Grid item>
+                        <ListItem button component={NavLink} to="/dashboard" activeClassName="Mui-selected" exact>
+                            <ListItemIcon>
+                                <HomeOutlinedIcon color={"primary"}/>
+                            </ListItemIcon>
+                        </ListItem>
+                    </Grid>
+
+                    <Grid item>
+                        <ListItem button component={NavLink} to="/portfolio" activeClassName="Mui-selected" exact>
+                            <ListItemIcon>
+                                <PieChartOutlinedIcon color={"primary"}/>
+                            </ListItemIcon>
+                        </ListItem>
+                    </Grid>
+
+                    <Grid item>
+                        <ListItem button component={NavLink} to="/watchlist" activeClassName="Mui-selected" exact>
+                            <ListItemIcon>
+                               <BookmarkBorderOutlinedIcon color={"primary"}/>
+                            </ListItemIcon>
+                        </ListItem>
+                    </Grid>
+
+                    <Grid item>
+                        <ListItem button onClick={() => logout()}>
+                            <ListItemIcon>
+                                <ExitToAppOutlinedIcon/>
+                            </ListItemIcon>
+                        </ListItem>
+                    </Grid>
                 </Grid>
+            </List>
+
+
+                </Grid>
+
+                <Grid container alignItems={"center"} justify={"center"} item style={{flexGrow: 1}}>
+                    <Grid item>
+                        <Box style={{transform: 'rotate(-90deg)'}}>
+                            <Typography variant={'h6'} style={{whiteSpace: 'nowrap'}}>
+                                Market status:&nbsp;
+                                <span style={{color: marketStatus ? theme.palette.success.main : theme.palette.error.main}} onClick={handleMarketStatusToggle}>
+                                {marketStatus ? 'open' : 'closed'}
+                            </span>
+                                {pos.position.marketStatusOverride !== null && <span>&nbsp;OVERRIDE</span>}
+                            </Typography>
+                        </Box>
+                    </Grid>
+                </Grid>
+
             </Grid>
+
         </aside>
     );
 
+    const variants = {
+        reg: {scale: 1},
+        focus: {width : '120%', backgroundColor: theme.palette.background.paper}
+    }
+
     const topbar = (
         <Grid container alignItems={"stretch"}>
-            <Grid item md={6}>
-                <Autocomplete
-                    fullWidth={true}
+            <Grid item>
+                <Box p={1}>
+                    <ToggleButtonGroup
+                        value={themeMode}
+                        exclusive
+                        onChange={handleThemeMode}
+                    >
+                        <ToggleButton value="dark">
+                            <Brightness4OutlinedIcon/>
+                        </ToggleButton>
+                    </ToggleButtonGroup>
+                </Box>
+            </Grid>
+            <Grid item md={3} sm={6}>
+                <motion.div whileFocus={{ scale: 1.8, transition: { duration: 0.3 }}}
+                    animate={searchFocused ? 'focus' : 'reg'}
+                    variants={variants}
+                >
+                <Autocomplete className={classes.search}
+
+                              onFocus={toggleSearchFocus}
+                              onBlur={toggleSearchFocus}
                     options={searchOptions}
                     onInputChange={(event, newInputValue) => {
                         searchStocks(newInputValue)
@@ -191,17 +249,20 @@ const Layout = (props) => {
                             placeholder={'Search by symbol or name'}
                         />}}
                     renderOption={(option, { selected }) => (<div>
-                        <Typography variant={'h5'}>{option.symbol}</Typography>
-                        <Typography variant={'h6'}>{option.lonaName}</Typography>
+                        <Typography variant={'h6'}>{option.symbol}</Typography>
+                        <Typography variant={'body1'}>{option.lonaName}</Typography>
                     </div>)}
                 />
+                </motion.div>
             </Grid>
+
+            <Grid item md={2}/>
 
             <Grid item>
                 <Box p={1}>
                     <Link to="/portfolio">
                         <Button variant="contained" startIcon={<AccountBalanceWalletOutlinedIcon/>}>
-                            SAR {funds}
+                            SAR {funds ? formatNumber(funds.toFixed(0)) : ''}
                         </Button>
                     </Link>
                 </Box>
@@ -212,9 +273,9 @@ const Layout = (props) => {
     const container = window !== undefined ? () => window().document.body : undefined;
 
     return (
-        <Container>
+        <Container style={{float: 'left'}}>
             <div className={classes.root}>
-                <AppBar position="fixed" className={classes.appBar}>
+                <AppBar position="fixed" className={classes.appBar} elevation={0}>
                     <Toolbar>
                         <IconButton
                             color="inherit"
@@ -241,6 +302,7 @@ const Layout = (props) => {
                             ModalProps={{
                                 keepMounted: true, // Better open performance on mobile.
                             }}
+                            elevation={0}
                         >
                             {drawer}
                         </Drawer>
@@ -252,6 +314,7 @@ const Layout = (props) => {
                             }}
                             variant="permanent"
                             open
+                            elevation={0}
                         >
                             {drawer}
                         </Drawer>

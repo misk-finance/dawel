@@ -14,7 +14,11 @@ export default class Login extends React.Component {
 
 	handleClick(e) {
 		e.preventDefault();
-		login(this.email.value, this.password.value).catch((error) => {
+		login(this.email.value, this.password.value).then(()=>{
+			this.props.history.push({
+				pathname: '/dashboard',
+			})
+		}).catch((error) => {
 			console.log(error);
 			this.setState({
 				msg: "Wrong Email or password",

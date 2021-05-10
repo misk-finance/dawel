@@ -27,7 +27,7 @@ export class SymbolCache {
     }
 
     init(){
-        if(this.inited)
+
     }
 
     getSectors(){

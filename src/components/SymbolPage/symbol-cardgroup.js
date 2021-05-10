@@ -30,7 +30,7 @@ export function SymbolCardGroup (props) {
     }
     return (
         <React.Fragment>
-            <Typography variant="h3">{props.title}</Typography>
+            <Typography variant="h6">{props.title}</Typography>
             <Grid container alignItems="stretch" spacing={1}>
                 {cardData.map((items, i) => (
                     <Grid item md>

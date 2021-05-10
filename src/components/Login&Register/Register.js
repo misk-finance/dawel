@@ -27,13 +27,18 @@ class Register extends Component {
   handleClickRegisterUser(e) {
 
     var re = /^(([^<>()\\.,;:\s@"]+(\.[^<>()\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-    if (
-      this.password.value.length > 6 &&
-      re.test(String(this.email.value).toLowerCase())
-    ) {
-      this.setState({
-        dialogOpen: true
+    if (this.password.value.length > 6 && re.test(String(this.email.value).toLowerCase())) {
+
+      localStorage.setItem("user", this.username.value);
+      auth(this.email.value, this.password.value).then(()=> {
+        this.context.position.update$(100000).subscribe(value => {
+          this.setState({
+            msg: "User Registered",
+            dialogOpen: true
+          })
+        });
       });
+
     }
     if (this.password.value.length < 6) {
       alert("Password must have at least 6 characters");
@@ -41,22 +46,15 @@ class Register extends Component {
     if (re.test(String(this.email.value).toLowerCase()) === false) {
       alert("wrong email adress");
     }
+
   }
 
 
 
   handleClose(){
-    localStorage.setItem("user", this.username.value);
-    auth(this.email.value, this.password.value).then(()=> {
-
-      this.context.position.update$(100000).subscribe(value => console.log);
-
-      this.setState({
-        msg: "User Registered :)",
-        dialogOpen: false
-      })
-    });
-
+    this.props.history.push({
+      pathname: '/dashboard',
+    })
   }
 
   render() {
@@ -68,21 +66,22 @@ class Register extends Component {
             onClose={this.handleClose}
         >
           <DialogTitle id="alert-dialog-title">Welcome!</DialogTitle>
-          <DialogContent ref={this.setDialogRef}>
-            {this.state.dialog && <Confetti width={this.state.dialog.clientWidth} height={this.state.dialog.clientHeight*2}/>}
+          <DialogContent >
+
             <DialogContentText id="alert-dialog-description">
               You have been awarded SAR 100,000 of virtual money to trade!
             </DialogContentText>
           </DialogContent>
           <DialogActions>
             <Button variant="contained" onClick={this.handleClose} autoFocus>
-              Great!
+              Start Trading!
             </Button>
           </DialogActions>
         </Dialog>
 
         <LandingMenu name="HOME" url="/" name2="LOGIN" url2="/login" />
-        <div className="container-register">
+        <div className="container-register" ref={this.setDialogRef}>
+          {this.state.dialogOpen && <Confetti width={this.state.dialog.clientWidth} height={this.state.dialog.clientHeight + 100}/>}
           <div className="wrap-register">
 
             <form className="register-form validate-form">

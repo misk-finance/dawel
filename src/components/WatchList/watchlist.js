@@ -97,12 +97,8 @@ export default class portfolio extends React.Component {
 
     let user = getAuth().currentUser.uid;
 
-    document.title = `${this.props.title} - Watchlist`;
+    if(!this.props.bodyOnly) document.title = `${this.props.title} - Watchlist`;
     this.getWatchlist();
-
-    /*document.querySelector(".hamburger").addEventListener("click", e => {
-      e.currentTarget.classList.toggle("is-active");
-    });*/
   }
 
   componentWillUnmount() {
@@ -128,15 +124,6 @@ export default class portfolio extends React.Component {
         change[parseInt(i)] = "+"+change[parseInt(i)];
       } else {
         color[i] = "#F45385";
-      }
-      if (
-          change[parseInt(i)] !==
-          "---"
-      ) {
-        change[parseInt(i)] =
-            change[
-                parseInt(i)
-                ] + "%";
       }
     }
     Promise.resolve(null).then(()=>this.setState({bulkLoading: false, newItems: data}));

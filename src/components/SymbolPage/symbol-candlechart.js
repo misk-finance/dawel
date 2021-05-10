@@ -35,7 +35,6 @@ export function SymbolCandlechart (props) {
     let firstDate = props.data[Math.max(0, d)].x.getTime();
     let lastDate = props.data[props.data.length - 1].x.getTime();
 
-    //useEffect(() => {},[theme]);
 
     return (
         <BoxPaper>
@@ -65,31 +64,46 @@ export function SymbolCandlechart (props) {
                                      height: 300,
                                      toolbar: {
                                          autoSelected: 'pan',
-                                         show: false
+                                         show: true
                                      },
                                      zoom: {
-                                         enabled: false
+                                         enabled: true
                                      },
                                  },
+                                 plotOptions: {
+                                     candlestick: {
+                                         colors: {
+                                             upward: theme.palette.success.main,
+                                             downward: theme.palette.error.main
+                                         },
+                                     }
+                                 },
+                                 grid:{
+                                     show: false
+                                 },
                                  xaxis: {
-                                     type: 'datetime'
+                                     type: 'datetime',
+                                     min: firstDate,
+                                     max: lastDate
                                  },
                                  yaxis: {
                                      tooltip: {
                                          enabled: true
-                                     }
+                                     },
+                                     min: (v) => v*0.99,
+                                     max: (v) => v*1.01
                                  },
                                  theme: {
                                      mode: theme.palette.type
                                  }
                              }}
             />
-            <ReactApexChart type="bar"
-                            height={150}
+            {/*<ReactApexChart type="bar"
+                            height={100}
                             series={[{name:'volume', data: props.volume}]}
                             options={{
                                 chart: {
-                                    height: 150,
+                                    height: 100,
                                     type: 'bar',
                                     brush: {
                                         enabled: true,
@@ -103,8 +117,12 @@ export function SymbolCandlechart (props) {
                                         },
                                     },
                                 },
+                                colors: [theme.palette.primary.main],
                                 dataLabels: {
                                     enabled: false
+                                },
+                                grid:{
+                                    show: false
                                 },
                                 xaxis: {
                                     type: 'datetime',
@@ -118,7 +136,7 @@ export function SymbolCandlechart (props) {
                                     mode: theme.palette.type
                                 }
                             }}
-            />
+            />*/}
         </BoxPaper>
     );
 }

@@ -30,7 +30,7 @@ function PrivateRoute({ component: Component, authed, ...rest }) {
       render={props =>
         authed === true ? (
             <Layout {...props} {...rest}>
-              <Component {...props} {...rest} title={title} />
+              <Component {...props} {...rest} title={title} key={Date.now()}/>
             </Layout>
         ) : (
           <Redirect
@@ -43,13 +43,14 @@ function PrivateRoute({ component: Component, authed, ...rest }) {
 }
 
 function PublicRoute({ component: Component, authed, ...rest }) {
+
   return (
     <Route
       {...rest}
       render={props =>
-        authed === false ? (
+        true || authed === false ? (
           <div className="container">
-            <Component {...props} />
+            <Component {...props}  />
           </div>
         ) : (
           <Redirect to="/Dashboard" />
@@ -115,20 +116,32 @@ class App extends Component {
     this.setState({theme: theme});
   }
 
+
   render() {
     const queryClient = new QueryClient();
 
-    const lightTheme = createMuiTheme({
+    const themeColors = {
+      palette: {
+        success: {
+          main: '#4caf50'
+        },
+        error: {
+          main: '#ff3d00'
+        }
+      }
+    }
+
+    const lightTheme = createMuiTheme({...themeColors, ...{
       palette: {
         type: 'light',
       },
-    });
+    }});
 
-    const darkTheme = createMuiTheme({
+    const darkTheme = createMuiTheme({...themeColors, ...{
       palette: {
         type: 'dark',
       },
-    });
+    }});
 
     if (this.state.theme === "light") {
       localStorage.setItem("theme", "light");
@@ -148,7 +161,7 @@ class App extends Component {
     ) : (
         <MuiThemeProvider theme={theme}>
           <QueryClientProvider client={queryClient}>
-            <ApiProvider><SymbolCacheProvider><PositionProvider>
+            <ApiProvider queryClient={queryClient}><SymbolCacheProvider><PositionProvider>
               <CssBaseline />
                 <Router>
                   <Switch>

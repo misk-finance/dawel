@@ -15,7 +15,7 @@ export function StatCard (props) {
 
     return (
         <Card className={classes.card}>
-            {props.title && <CardHeader title={props.title}/>}
+            {props.title && <CardHeader titleTypographyProps={{variant: 'h6'}} title={props.title}/>}
             <CardContent>
                 <List>
                     <Divider/>
