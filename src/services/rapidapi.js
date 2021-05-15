@@ -83,12 +83,6 @@ export class RapidApi {
         });
     }
 
-
-
-  /*  useChartQuery(symbol, interval, range){
-        return useQuery('chart', () => this.getChart$(symbol, interval, range).toPromise(), this.rqOptions);
-    }*/
-
     useFetchBulkQuotesQuery(symbols, options, queryKey){
         return () => useInfiniteQuery(queryKey ? queryKey : 'bulk_quotes', () => this.getBulkQuotes$(symbols).toPromise(), {...this.rqOptions, ...options});
     }
@@ -96,7 +90,7 @@ export class RapidApi {
     getFetchBulkQuotesQuery$(symbols, options, queryKey){
         return new InfiniteQueryObserver(this.qc, {...this.rqOptions, ...options,
                 queryKey: queryKey ? queryKey : ['bulk_quotes', symbols],
-                queryFn: () => this.getBulkQuotes$(symbols).toPromise()
+                queryFn: (context) => this.getBulkQuotes$(context.pageParam ? context.pageParam: symbols).toPromise()
             }
         );
     }

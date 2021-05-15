@@ -35,6 +35,7 @@ import {SymbolCacheContext} from "../../services/symbol-cache";
 import {PositionContext} from "../../services/position-history";
 import {motion} from "framer-motion";
 import {formatNumber} from "../../services/formatter";
+import withWidth from "@material-ui/core/withWidth";
 
 const drawerWidth = 64;
 
@@ -57,7 +58,7 @@ const useStyles = makeStyles((theme) => ({
         backgroundColor: theme.palette.background.default,
     },
     menuButton: {
-        marginRight: theme.spacing(2),
+        //marginRight: theme.spacing(2),
         [theme.breakpoints.up('sm')]: {
             display: 'none',
         },
@@ -72,7 +73,9 @@ const useStyles = makeStyles((theme) => ({
     },
     content: {
         flexGrow: 1,
-        padding: theme.spacing(3),
+        [theme.breakpoints.up('md')]: {
+            padding: theme.spacing(3),
+        }
     },
 }));
 
@@ -134,6 +137,8 @@ const Layout = (props) => {
         setSearchOptions(sc.cache.collection.filter(item =>  (item.symbol.match(new RegExp(filter, 'i')) || item.lonaName.match(new RegExp(filter, 'i')))));
     }
 
+    const isSmall = () => /xs/.test(props.width);
+
     const drawer = (
         <aside>
             <div className={classes.toolbar} />
@@ -166,6 +171,22 @@ const Layout = (props) => {
                             </ListItemIcon>
                         </ListItem>
                     </Grid>
+
+                    {isSmall() &&
+                        <Grid item>
+                            <Box p={1}>
+                                <ToggleButtonGroup
+                                    value={themeMode}
+                                    exclusive
+                                    onChange={handleThemeMode}
+                                >
+                                    <ToggleButton value="dark">
+                                        <Brightness4OutlinedIcon/>
+                                    </ToggleButton>
+                                </ToggleButtonGroup>
+                            </Box>
+                        </Grid>
+                    }
 
                     <Grid item>
                         <ListItem button onClick={() => logout()}>
@@ -200,72 +221,79 @@ const Layout = (props) => {
     );
 
     const variants = {
-        reg: {scale: 1},
+        reg: {width: '100%'},
         focus: {width : '120%', backgroundColor: theme.palette.background.paper}
     }
 
     const topbar = (
-        <Grid container alignItems={"stretch"}>
-            <Grid item>
-                <Box p={1}>
-                    <ToggleButtonGroup
-                        value={themeMode}
-                        exclusive
-                        onChange={handleThemeMode}
-                    >
-                        <ToggleButton value="dark">
-                            <Brightness4OutlinedIcon/>
-                        </ToggleButton>
-                    </ToggleButtonGroup>
-                </Box>
-            </Grid>
-            <Grid item md={3} sm={6}>
-                <motion.div whileFocus={{ scale: 1.8, transition: { duration: 0.3 }}}
-                    animate={searchFocused ? 'focus' : 'reg'}
-                    variants={variants}
-                >
-                <Autocomplete className={classes.search}
+        <Grid container>
+            <Grid container item md={6} xs={12}>
+                {!isSmall() &&
+                    <Grid item>
+                        <Box p={1}>
+                            <ToggleButtonGroup
+                                value={themeMode}
+                                exclusive
+                                onChange={handleThemeMode}
+                            >
+                                <ToggleButton value="dark">
+                                    <Brightness4OutlinedIcon/>
+                                </ToggleButton>
+                            </ToggleButtonGroup>
+                        </Box>
+                    </Grid>
+                }
 
-                              onFocus={toggleSearchFocus}
-                              onBlur={toggleSearchFocus}
-                    options={searchOptions}
-                    onInputChange={(event, newInputValue) => {
-                        searchStocks(newInputValue)
-                    }}
-                    onChange={(event, value) => history.push(`/stocks/${value.symbol}`)}
-                    getOptionLabel={(option) => option.symbol}
-                    filterOptions = {(option, value) => {
-                        return option;
-                    }}
-                    renderInput={(params) => {
-                        params.InputProps.startAdornment = <>
-                            <InputAdornment position="start">
-                                <SearchOutlinedIcon />
-                            </InputAdornment>
-                            {params.InputProps.startAdornment}
-                        </>;
-                        return <TextField {...params}
-                            variant={'outlined'}
-                            placeholder={'Search by symbol or name'}
-                        />}}
-                    renderOption={(option, { selected }) => (<div>
-                        <Typography variant={'h6'}>{option.symbol}</Typography>
-                        <Typography variant={'body1'}>{option.lonaName}</Typography>
-                    </div>)}
-                />
-                </motion.div>
-            </Grid>
+                <Grid container item xs justify={"space-between"} alignItems={"center"}>
 
-            <Grid item md={2}/>
+                    <Grid item xs={6}>
+                        <motion.div
+                            animate={searchFocused ? 'focus' : 'reg'}
+                            variants={variants}
+                        >
+                        <Autocomplete
 
-            <Grid item>
-                <Box p={1}>
-                    <Link to="/portfolio">
-                        <Button variant="contained" startIcon={<AccountBalanceWalletOutlinedIcon/>}>
-                            SAR {funds ? formatNumber(funds.toFixed(0)) : ''}
-                        </Button>
-                    </Link>
-                </Box>
+                                      onFocus={toggleSearchFocus}
+                                      onBlur={toggleSearchFocus}
+                            options={searchOptions}
+                            onInputChange={(event, newInputValue) => {
+                                searchStocks(newInputValue)
+                            }}
+                            onChange={(event, value) => history.push(`/stocks/${value.symbol}`)}
+                            getOptionLabel={(option) => option.symbol}
+                            filterOptions = {(option, value) => {
+                                return option;
+                            }}
+                            renderInput={(params) => {
+                                params.InputProps.startAdornment = <>
+                                    <InputAdornment position="start" style={{marginRight:0}}>
+                                        <SearchOutlinedIcon />
+                                    </InputAdornment>
+                                    {params.InputProps.startAdornment}
+                                </>;
+                                return <TextField {...params}
+                                    size={isSmall() ? 'small' : 'medium'}
+                                    variant={'outlined'}
+                                    placeholder={'Search by symbol or name'}
+                                />}}
+                            renderOption={(option, { selected }) => (<div>
+                                <Typography variant={'h6'}>{option.symbol}</Typography>
+                                <Typography variant={'body1'}>{option.lonaName}</Typography>
+                            </div>)}
+                        />
+                        </motion.div>
+                    </Grid>
+
+                    <Grid item>
+                        <Box p={1}>
+                            <Link to="/portfolio">
+                                <Button size={isSmall() ? 'small' : 'medium'} variant="contained" startIcon={<AccountBalanceWalletOutlinedIcon/>}>
+                                    SAR {funds ? formatNumber(funds.toFixed(0)) : ''}
+                                </Button>
+                            </Link>
+                        </Box>
+                    </Grid>
+                </Grid>
             </Grid>
         </Grid>
     );
@@ -278,12 +306,12 @@ const Layout = (props) => {
                 <AppBar position="fixed" className={classes.appBar} elevation={0}>
                     <Toolbar>
                         <IconButton
-                            color="inherit"
+                            color="default"
                             edge="start"
                             onClick={handleDrawerToggle}
                             className={classes.menuButton}
                         >
-                            <MenuIcon />
+                            <MenuIcon/>
                         </IconButton>
                         {topbar}
                     </Toolbar>
@@ -331,4 +359,4 @@ const Layout = (props) => {
     );
 };
 
-export default Layout;
+export default withWidth()(Layout);

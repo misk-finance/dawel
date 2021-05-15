@@ -115,7 +115,7 @@ export function PortfolioTable (props) {
         );
 
         let rows = props.symbols.map((val, index) => ({
-            id: val,
+            id: val+index,
             longName: props.names[index],
             symbol: val,
             quantity: props.shares ? props.shares[index] : 0,
@@ -141,10 +141,10 @@ export function PortfolioTable (props) {
             {props.symbols.map((val, index) => (<>
                 <Divider/>
                 <Grid container item alignItems={"stretch"}>
-                  <Grid item md>
+                  <Grid item xs>
                       <Link component={RouterLink} variant={"subtitle1"} color={"textPrimary"} to={`/stocks/${val}`} >{val}</Link>
                   </Grid>
-                  <Grid container  direction={"column"} item md>
+                  <Grid container  direction={"column"} item xs>
                       <Grid item>
                           <Typography variant={"subtitle1"}>SAR {formatNumber(props.value[index])}</Typography>
                       </Grid>

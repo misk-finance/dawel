@@ -3,7 +3,6 @@ import {getAuth} from 'firebase/auth';
 import {arrayRemove} from 'firebase/firestore';
 
 import Loader from "../Elements/Loader";
-import {UseFetchBulkQuotesQuery} from "../../services/react-query-components";
 import {Grid, Typography} from "@material-ui/core";
 import {PortfolioTable} from "../Portfolio/portfolio-table";
 import Button from "@material-ui/core/Button";
@@ -50,6 +49,8 @@ export default class portfolio extends React.Component {
     this.context.position.getCache$().subscribe(doc => {
       if(!doc.data()) return;
       watchlist = doc.data().watchlist;
+      this.prepareBulkQuery();
+
       if(watchlist.length === 0){
         if(this._isMounted){
           this.setState({
@@ -91,13 +92,41 @@ export default class portfolio extends React.Component {
       });
     }
   }
-  
+
+  prepareBulkQuery(){
+    let limit = 10;
+    const getSymbolsToQuery = () => {
+      return watchlist.filter((collection, index) => index >= this.getItemCount() && index < this.getItemCount() + limit);
+    };
+
+    const showFetch = () => {
+      return this.state.newItems && this.state.newItems.length > 0 && this.state.newItems.length < watchlist.length;
+    }
+
+    this.obs = this.getApiContext().api.getFetchBulkQuotesQuery$(getSymbolsToQuery(), {
+      refetchOnWindowFocus: false,
+      enabled: false,
+      getNextPageParam: (lastPage, pages) => {
+        return getSymbolsToQuery()
+      }
+    }, 'watchlist');
+
+    this.obs.subscribe(rq => {
+      if(rq.data) {
+        let newItems = [];
+        rq.data.pages.forEach((value) => {
+          newItems = newItems.concat(value.result)
+        });
+        this.processBulkQuotes(newItems);
+      }
+    });
+    this.fetchMore();
+  }
+
   componentDidMount() {
     this._isMounted = true;
-
-    let user = getAuth().currentUser.uid;
-
     if(!this.props.bodyOnly) document.title = `${this.props.title} - Watchlist`;
+
     this.getWatchlist();
   }
 
@@ -129,78 +158,43 @@ export default class portfolio extends React.Component {
     Promise.resolve(null).then(()=>this.setState({bulkLoading: false, newItems: data}));
   }
 
+  getItemCount(){
+    return this.state.newItems ? this.state.newItems.length : 0;
+  }
+
+  fetchMore(){
+    this.obs.fetchNextPage();
+  }
+
+  showFetch(){
+    return this.getItemCount() < watchlist.length;
+  }
+
   getBody(){
-
-    let limit = 3;
-    let itemCount = this.state.newItems ? this.state.newItems.length : 0;
-
-    const getSymbolsToQuery = () => {
-      return watchlist.filter((collection, index) => index >= itemCount && index < itemCount + limit);
-    };
-
-    const showFetch = () => {
-      return this.state.newItems && this.state.newItems.length > 0 && this.state.newItems.length < watchlist.length;
-    }
-
     if(this.state.loader1 === "") return <Loader />;
 
-    return(watchlist.length > 0
-      ? <UseFetchBulkQuotesQuery
-            queryKey='watchlist_quotes'
-            api={this.getApiContext()}
-            symbols={getSymbolsToQuery()}
-            options={{
-              refetchOnWindowFocus: false,
-              enabled: false,
-              getNextPageParam: (lastPage, pages) => {
-                return getSymbolsToQuery()
-              }
-            }}
-        >
-        {({ data, fetchNextPage, isFetching  }) => {
-          if(!data && !isFetching ) {
-            fetchNextPage();
-          }
-
-          let newItems = [];
-          if(data && !isFetching && this.state.bulkLoading){
-            data.pages.forEach((value) => {
-              newItems = newItems.concat(value.result)
-            });
-            this.processBulkQuotes(newItems);
-          }
-
-          const doFetch = () => {
-            Promise.resolve(null).then(() => this.setState({bulkLoading: true}))
-            fetchNextPage();
-          }
-
-          return (
-              <React.Fragment>
-                <PortfolioTable symbols={watchlist.filter((v,i) => i < itemCount)}
-                                names={stockName}
-                                color={color}
-                                difference={change}
-                                value={value}
-                                handleWatchlist={this.handleWatchlist}
-                                compact={this.props.bodyOnly}
-                />
-                {showFetch() && <Button variant="contained" color="primary"  onClick={() => doFetch()}>Fetch more</Button>}
-            </React.Fragment>)
-
-        }}
-        </UseFetchBulkQuotesQuery>
-        : <Typography>You haven’t bookmarked any stocks yet</Typography>
+    return (
+        watchlist.length > 0
+          ? <>
+              <PortfolioTable symbols={watchlist.filter((v,i) => i < this.getItemCount())}
+                              names={stockName}
+                              color={color}
+                              difference={change}
+                              value={value}
+                              handleWatchlist={this.handleWatchlist}
+                              compact={this.props.bodyOnly}
+              />
+              {this.showFetch() && <Button variant="contained" color="primary"  onClick={() => this.fetchMore()}>Fetch more</Button>}
+          </>
+          : <Typography>You haven’t bookmarked any stocks yet</Typography>
     );
-
-
   }
 
   render() {
     return this.props.bodyOnly ? this.getBody() : (
         <Grid container>
-          <Grid item md={9}>
-            <BoxPaper transparent={true}>
+          <Grid item md={9} xs={12}>
+            <BoxPaper transparent={true} p={0}>
                 {this.getBody()}
             </BoxPaper>
           </Grid>

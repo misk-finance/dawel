@@ -6,7 +6,6 @@ import Loader from "../Elements/Loader";
 import {Divider, Grid, List, ListItem, Typography} from "@material-ui/core";
 import {PortfolioChart} from "./portfolio-chart";
 import {PortfolioTable} from "./portfolio-table";
-import {UseFetchBulkQuotesQuery} from "../../services/react-query-components";
 import Button from "@material-ui/core/Button";
 import BoxPaper from "../Elements/BoxPaper";
 import {PositionContext} from "../../services/position-history";
@@ -140,8 +139,8 @@ export default class portfolio extends React.Component {
 
   componentDidMount() {
     this._isMounted = true;
-
     if(!this.props.bodyOnly) document.title = `${this.props.title} - Portfolio`;
+
     this.context.position.getTotalValue$().subscribe(v => {
       this.getPositions(v);
     });
@@ -163,19 +162,18 @@ export default class portfolio extends React.Component {
     if(this.state.loader1 === "") return <Loader />;
 
     return (
-        symbols.length > 0 ?
-                    <PortfolioTable symbols={symbols}
-                                       names={stockNames}
-                                       shares={shares}
-                                       color={color}
-                                       difference={difference}
-                                       change={change}
-                                       value={value}
-                                       handleStockSell={this.handleStockSell}
-                                       position={position}
-                                       compact={this.props.bodyOnly}
-                    />
-
+        symbols.length > 0
+            ? <PortfolioTable symbols={symbols}
+                               names={stockNames}
+                               shares={shares}
+                               color={color}
+                               difference={difference}
+                               change={change}
+                               value={value}
+                               handleStockSell={this.handleStockSell}
+                               position={position}
+                               compact={this.props.bodyOnly}
+            />
           : <Typography>You haven't bought any stocks yet</Typography>
     );
   }
@@ -211,30 +209,30 @@ export default class portfolio extends React.Component {
 
             <Grid item container spacing={1} alignItems={"flex-end"}>
 
-              <Grid item md={6}>
+              <Grid item md={6} sm={6} xs={12}>
                 <Typography variant={"h6"}>Total portfolio value</Typography>
                 <BoxPaper transparent={true}>
                     <List>
                       <ListItem>
                         <Grid container>
-                          <Grid item md={3}>Stocks</Grid>
-                          <Grid item md>{(totalStocksValue*100/totalValue).toFixed(2)}%</Grid>
-                          <Grid item md>SAR {formatNumber(totalStocksValue.toFixed(2))}</Grid>
+                          <Grid item xs={3}>Stocks</Grid>
+                          <Grid item xs>{(totalStocksValue*100/totalValue).toFixed(2)}%</Grid>
+                          <Grid item xs>SAR {formatNumber(totalStocksValue.toFixed(2))}</Grid>
                         </Grid>
                       </ListItem>
                       <Divider/>
                       <ListItem>
                         <Grid container>
-                          <Grid item md={3}>Cash</Grid>
-                          <Grid item md>{(parseFloat(this.state.funds)*100/totalValue).toFixed(2)}%</Grid>
-                          <Grid item md>SAR {formatNumber(parseFloat(this.state.funds).toFixed(2))}</Grid>
+                          <Grid item xs={3}>Cash</Grid>
+                          <Grid item xs>{(parseFloat(this.state.funds)*100/totalValue).toFixed(2)}%</Grid>
+                          <Grid item xs>SAR {formatNumber(parseFloat(this.state.funds).toFixed(2))}</Grid>
                         </Grid>
                       </ListItem>
                     </List>
                 </BoxPaper>
               </Grid>
 
-              <Grid item md={3}>
+              <Grid item md={3} sm={6} xs={12}>
                 <BoxPaper transparent={true}>
                     <PortfolioChart cash={this.state.funds} stocks={totalStocksValue} />
                 </BoxPaper>
@@ -244,7 +242,7 @@ export default class portfolio extends React.Component {
 
             <Grid item md={9}>
               <Typography variant={"h6"}>Stocks</Typography>
-              <BoxPaper transparent={true}>
+              <BoxPaper transparent={true} p={0}>
                   {this.getBody()}
               </BoxPaper>
             </Grid>

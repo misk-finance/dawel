@@ -13,7 +13,7 @@ const BoxPaper = (props) => {
 
     return (
         <Paper className={props.transparent ? classes.paper : null}>
-            <Box p={2}>
+            <Box p={props.p !== undefined ? props.p : 2}>
                 {props.children}
             </Box>
         </Paper>

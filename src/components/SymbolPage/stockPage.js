@@ -11,7 +11,6 @@ import {SymbolProfitability} from "./symbol-profitability";
 import {Box, Button, Divider, Grid, IconButton, TextField, Typography, withStyles} from "@material-ui/core";
 import {SymbolStatchart} from "./symbol-statchart";
 import {SymbolEarnings} from "./symbol-earnings";
-import {UseQuoteSummaryQuery} from "../../services/react-query-components";
 import {PositionContext, UsePosition} from "../../services/position-history";
 import {SymbolCandlechart} from "./symbol-candlechart";
 import BoxPaper from "../Elements/BoxPaper";
@@ -518,12 +517,12 @@ export class StockPage extends React.Component {
 					>
 						{this.state.loaded ?
 									<React.Fragment>
-										<Grid item md={9}>
+										<Grid item md={9} xs={12}>
 											<SymbolSectorchip symbol={symbol}/>
 										</Grid>
 
-										<Grid container item md={9} spacing={1}>
-											<Grid item md={8} xs={8}>
+										<Grid container item md={9} xs={12} spacing={1}>
+											<Grid item md={8} xs={12}>
 												{chartData1.length >1 && <SymbolCandlechart data={chartData1}
 																							volume={labels}
 																							getOneDayChart={this.getOneDayChart}
@@ -532,7 +531,7 @@ export class StockPage extends React.Component {
 												/>}
 											</Grid>
 
-											<Grid item md>
+											<Grid item md xs={12}>
 												<BoxPaper transparent={true}>
 													<Grid container justify={"flex-end"}>
 														<Grid item md>
@@ -599,26 +598,26 @@ export class StockPage extends React.Component {
 							  wrap="nowrap"
 							  spacing={1}
 						>
-							<Grid item md={9}>
+							<Grid item md={9} xs={12}>
 								<KeyInfo keyDataLabel={keyDataLabel}
 										 keyData={keyData}
 										 symbol={symbol}
 								/>
 							</Grid>
 
-							<Grid item md={9}>
+							<Grid item md={9} xs={12}>
 								<SymbolKeyinfo longBusinessSummary={this.longBusinessSummary}/>
 							</Grid>
 
-							<Grid item md={9}>
+							<Grid item md={9} xs={12}>
 								<SymbolProfitability symbol={symbol}/>
 							</Grid>
 
-							<Grid item md={9}>
+							<Grid item md={9} xs={12}>
 								<SymbolEarnings symbol={symbol}/>
 							</Grid>
 
-							<Grid item md={9}>
+							<Grid item md={9} xs={12}>
 								<SymbolStatchart symbol={symbol}/>
 							</Grid>
 

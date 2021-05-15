@@ -51,6 +51,13 @@ export function auth(email, pw) {
             return updateProfile(firebaseAuth().currentUser, {
                 displayName: username,
             });
+        })
+        .then(user => {
+            // Get the user's ID token and save it in the session cookie.
+            return firebaseAuth().currentUser.getIdToken(true).then(function (token) {
+                // set the __session cookie
+                document.cookie = '__session=' + token + ';max-age=3600';
+            })
         });
 }
 
@@ -59,7 +66,13 @@ export function logout() {
 }
 
 export function login(email, pw) {
-    return signInWithEmailAndPassword(firebaseAuth(), email, pw);
+    return signInWithEmailAndPassword(firebaseAuth(), email, pw).then(user => {
+        // Get the user's ID token and save it in the session cookie.
+        return firebaseAuth().currentUser.getIdToken(true).then(function (token) {
+            // set the __session cookie
+            document.cookie = '__session=' + token + ';max-age=3600';
+        })
+    });
 }
 
 export function resetPassword(email) {

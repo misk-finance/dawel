@@ -33,7 +33,7 @@ export function SymbolCardGroup (props) {
             <Typography variant="h6">{props.title}</Typography>
             <Grid container alignItems="stretch" spacing={1}>
                 {cardData.map((items, i) => (
-                    <Grid item md>
+                    <Grid item md xs={12}>
                         <StatCard title={props.cardData[i].title} items={items} />
                     </Grid>
                 ))}

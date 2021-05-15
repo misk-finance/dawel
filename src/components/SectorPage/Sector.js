@@ -152,7 +152,7 @@ export function Sector (props) {
         <Grid container>
             <Grid item md={9} xs={12}>
                 <Typography variant={'h6'}>{sector}</Typography>
-                <BoxPaper transparent={true}>
+                <BoxPaper transparent={true} p={0}>
                     {asDataGrid()}
                     {showFetch() && <Button variant="contained" color="primary"  onClick={() => fetchNextPage()}>Fetch more</Button>}
                 </BoxPaper>
