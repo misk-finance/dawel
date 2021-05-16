@@ -219,7 +219,7 @@ export class StockPage extends React.Component {
 		chartData1 = [];
 		let b = 0;
 		if (oneDay.length === 0) {
-			this.prepareChartData(oneDay, oneDayLabels, symbol, '1m', '1d');
+			this.prepareChartData(oneDay, oneDayLabels, symbol, '1h', '1d');
 		} else {
 			labels = oneDayLabels;
 			chartData1 = oneDay;
@@ -253,7 +253,7 @@ export class StockPage extends React.Component {
 		labels = [];
 		chartData1 = [];
 		if (oneMonth.length === 0) {
-		  this.prepareChartData(oneMonth, oneMonthLabels, symbol, '1h', '1mo');
+		  this.prepareChartData(oneMonth, oneMonthLabels, symbol, '1d', '1mo');
 		} else {
 		  labels = oneMonthLabels;
 		  chartData1 = oneMonth;

@@ -63,7 +63,7 @@ export function SymbolCandlechart (props) {
                                      type: 'candlestick',
                                      height: 300,
                                      toolbar: {
-                                         autoSelected: 'pan',
+                                         /*autoSelected: 'pan',*/
                                          show: true
                                      },
                                      zoom: {
@@ -83,8 +83,8 @@ export function SymbolCandlechart (props) {
                                  },
                                  xaxis: {
                                      type: 'datetime',
-                                     min: firstDate,
-                                     max: lastDate
+                                     /*min: firstDate,
+                                     max: lastDate*/
                                  },
                                  yaxis: {
                                      tooltip: {
