@@ -26,13 +26,13 @@
     <img src="https://res.cloudinary.com/hackbot/image/upload/v1615524571/logo_wvpv5h.png" alt="Logo" width="160" height="90">
   </a>
 
-  <h3 align="center">StalkStock</h3>
+  <h3 align="center">Dawel</h3>
 
   <p align="center">
     A virtual trading application.
     <br />
     <br />
-    <a href="https://stalk-stock.vercel.app">Demo</a>
+    <a href="https://financeapp-5ba07.web.app/">Demo</a>
     ·
     <a href="https://github.com/starwiz-7/StalkStock/issues">Report Bug</a>
     ·
